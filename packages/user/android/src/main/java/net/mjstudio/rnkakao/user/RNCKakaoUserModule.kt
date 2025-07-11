@@ -40,8 +40,12 @@ class RNCKakaoUserModule internal constructor(
     prompts: ReadableArray?,
     useKakaoAccountLogin: Boolean,
     scopes: ReadableArray?,
+    nonce: String?,
     promise: Promise,
   ) = onMain {
+    // Debug: Log nonce parameter
+    android.util.Log.d("RNCKakaoUser", "Login called with nonce: $nonce")
+    
     val context =
       currentActivity ?: run {
         promise.rejectWith(ActivityNotFoundException())
@@ -53,6 +57,9 @@ class RNCKakaoUserModule internal constructor(
       } else if (token == null) {
         promise.rejectWith(RNCKakaoResponseNotFoundException("token"))
       } else {
+        // Debug: Log received ID token
+        android.util.Log.d("RNCKakaoUser", "Received ID token: ${token.idToken}")
+        
         promise.resolve(
           argMap().apply {
             putString("accessToken", token.accessToken)
@@ -87,23 +94,29 @@ class RNCKakaoUserModule internal constructor(
     }
 
     if (scopes?.filterIsInstance<String>()?.isEmpty() == false) {
+      android.util.Log.d("RNCKakaoUser", "Calling loginWithNewScopes with nonce: $nonce")
       UserApiClient.instance.loginWithNewScopes(
         context,
         scopes = scopes.filterIsInstance<String>(),
+        nonce = nonce,
         callback = callback,
       )
-    } else if (UserApiClient.instance.isKakaoTalkLoginAvailable(context) &&
+    } else if (
+      UserApiClient.instance.isKakaoTalkLoginAvailable(context) &&
       !useKakaoAccountLogin &&
       scopes
         ?.filterIsInstance<String>()
         ?.isEmpty() == true
     ) {
+      android.util.Log.d("RNCKakaoUser", "Calling loginWithKakaoTalk with nonce: $nonce")
       UserApiClient.instance.loginWithKakaoTalk(
         context,
         serviceTerms = serviceTerms?.filterIsInstance<String>()?.ifEmpty { null },
+        nonce = nonce,
         callback = callback,
       )
     } else {
+      android.util.Log.d("RNCKakaoUser", "Calling loginWithKakaoAccount with nonce: $nonce")
       UserApiClient.instance.loginWithKakaoAccount(
         context,
         prompts =
@@ -120,6 +133,7 @@ class RNCKakaoUserModule internal constructor(
               }
             }?.ifEmpty { null },
         serviceTerms = serviceTerms?.filterIsInstance<String>()?.ifEmpty { null },
+        nonce = nonce,
         callback = callback,
       )
     }
